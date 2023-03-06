@@ -72,6 +72,8 @@ def main():
     # chosen k*.                                                        #
     #####################################################################
     
+    # knn impute by user
+    print('***** knn impute by user *****')
     # set k values
     ks = [i for i in range(1, 27, 5)]
     val_acc = []
@@ -88,6 +90,29 @@ def main():
     # calculate test acc for k*
     nbrs = KNNImputer(n_neighbors=max_val_acc_k)
     mat = nbrs.fit_transform(sparse_matrix)
+    test_acc = sparse_matrix_evaluate(test_data, mat)
+    print(f'test accuracy (k* = {max_val_acc_k}): {test_acc}')
+
+    # knn impute by item
+    print('***** knn impute by item *****')
+    # set k values
+    ks = [i for i in range(1, 27, 5)]
+    val_acc = []
+
+    # calculate val acc for k values
+    for k in ks:
+        acc = knn_impute_by_item(sparse_matrix, val_data, k)
+        val_acc.append(acc)
+
+    # find max val acc and corresponding k
+    max_val_acc_index = val_acc.index(max(val_acc))
+    max_val_acc_k = ks[max_val_acc_index]
+
+    # calculate test acc for k*
+    sparse_matrix = sparse_matrix.T
+    nbrs = KNNImputer(n_neighbors=max_val_acc_k)
+    mat = nbrs.fit_transform(sparse_matrix)
+    mat = mat.T
     test_acc = sparse_matrix_evaluate(test_data, mat)
     print(f'test accuracy (k* = {max_val_acc_k}): {test_acc}')
 
