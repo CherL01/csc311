@@ -1,5 +1,7 @@
 from sklearn.impute import KNNImputer
+import os
 from utils import *
+
 
 
 def knn_impute_by_user(matrix, valid_data, k):
@@ -38,6 +40,15 @@ def knn_impute_by_item(matrix, valid_data, k):
     # Implement the function as described in the docstring.             #
     #####################################################################
     acc = None
+
+    matrix = matrix.T
+    nbrs = KNNImputer(n_neighbors=k)
+    # We use NaN-Euclidean distance measure.
+    mat = nbrs.fit_transform(matrix)
+    mat = mat.T
+    acc = sparse_matrix_evaluate(valid_data, mat)
+    print("Validation Accuracy: {}".format(acc))
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -60,7 +71,27 @@ def main():
     # the best performance and report the test accuracy with the        #
     # chosen k*.                                                        #
     #####################################################################
-    pass
+    
+    # set k values
+    ks = [i for i in range(1, 27, 5)]
+    val_acc = []
+
+    # calculate val acc for k values
+    for k in ks:
+        acc = knn_impute_by_user(sparse_matrix, val_data, k)
+        val_acc.append(acc)
+
+    # find max val acc and corresponding k
+    max_val_acc_index = val_acc.index(max(val_acc))
+    max_val_acc_k = ks[max_val_acc_index]
+
+    # calculate test acc for k*
+    nbrs = KNNImputer(n_neighbors=max_val_acc_k)
+    mat = nbrs.fit_transform(sparse_matrix)
+    test_acc = sparse_matrix_evaluate(test_data, mat)
+    print(f'test accuracy (k* = {max_val_acc_k}): {test_acc}')
+
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
