@@ -1,6 +1,7 @@
 from utils import *
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def sigmoid(x):
@@ -69,8 +70,8 @@ def update_theta_beta(data, lr, theta, beta):
         d_theta[user] += correct * (1 / g) * d_g + (1-correct) * (1 / (1-g)) * (-d_g)
         d_beta[q_id] += correct * (1 / g) * d_g * - 1 + (1-correct) * (1 / (1-g)) * (-d_g) * - 1
 
-    theta = theta - lr * d_theta
-    beta = beta - lr * d_beta
+    theta = theta + lr * d_theta
+    beta = beta + lr * d_beta
     
     #####################################################################
     #                       END OF YOUR CODE                            #
@@ -92,20 +93,22 @@ def irt(data, val_data, lr, iterations):
     :return: (theta, beta, val_acc_lst)
     """
     # TODO: Initialize theta and beta.
-    theta = None
-    beta = None
+    theta = np.zeros(len(set(data['user_id'])))
+    beta = np.zeros(len(set(data['question_id'])))
 
+    neg_lld_lst = []
     val_acc_lst = []
 
     for i in range(iterations):
         neg_lld = neg_log_likelihood(data, theta=theta, beta=beta)
         score = evaluate(data=val_data, theta=theta, beta=beta)
+        neg_lld_lst.append(neg_lld)
         val_acc_lst.append(score)
         print("NLLK: {} \t Score: {}".format(neg_lld, score))
         theta, beta = update_theta_beta(data, lr, theta, beta)
 
     # TODO: You may change the return values to achieve what you want.
-    return theta, beta, val_acc_lst
+    return theta, beta, val_acc_lst, neg_lld_lst
 
 
 def evaluate(data, theta, beta):
@@ -139,7 +142,23 @@ def main():
     # Tune learning rate and number of iterations. With the implemented #
     # code, report the validation and test accuracy.                    #
     #####################################################################
-    pass
+    
+    lr = 0.01
+    num_iter = 60
+    # print(len(train_data["user_id"]))
+    theta, beta, val_acc_lst, neg_lld_lst = irt(train_data, val_data, lr, num_iter)
+
+    x = [i for i in range(1, num_iter+1)]
+    plt.plot(x, neg_lld_lst)
+    plt.xlabel('Iterations')
+    plt.ylabel('Negative Log-Likelihood')
+    plt.title('Negative Log-Likelihood vs. Iterations')
+    plt.savefig('/Users/cherry.lian/Desktop/CSC311/CSC311_Project/csc311/starter_code/part_a/q2_b_nlld.png')
+
+    test_acc = evaluate(test_data, theta, beta)
+    print('validation accuracy: ', val_acc_lst[-1])
+    print('test accuracy: ', test_acc)
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
