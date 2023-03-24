@@ -59,7 +59,19 @@ def update_theta_beta(data, lr, theta, beta):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    pass
+    d_theta = np.zeros_like(theta)
+    d_beta = np.zeros_like(beta)
+    for user, q_id, correct in zip(data['user_id'], data['question_id'], data['is_correct']):
+        if np.isnan(correct):
+            continue
+        g = sigmoid(theta[user] - beta[q_id])
+        d_g = g * (1 - g)
+        d_theta[user] += correct * (1 / g) * d_g + (1-correct) * (1 / (1-g)) * (-d_g)
+        d_beta[q_id] += correct * (1 / g) * d_g * - 1 + (1-correct) * (1 / (1-g)) * (-d_g) * - 1
+
+    theta = theta - lr * d_theta
+    beta = beta - lr * d_beta
+    
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
