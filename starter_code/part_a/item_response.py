@@ -25,6 +25,13 @@ def neg_log_likelihood(data, theta, beta):
     # Implement the function as described in the docstring.             #
     #####################################################################
     log_lklihood = 0.
+
+    for user, q_id, correct in zip(data['user_id'], data['question_id'], data['is_correct']):
+        if np.isnan(correct):
+            continue
+        g = sigmoid(theta[user] - beta[q_id])
+        log_lklihood += correct*np.log(g) + (1-correct)*np.log(1-g)
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
