@@ -2,6 +2,9 @@ from utils import *
 
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+
+random.seed(321)
 
 
 def sigmoid(x):
@@ -167,7 +170,26 @@ def main():
     # TODO:                                                             #
     # Implement part (d)                                                #
     #####################################################################
-    pass
+    
+    js = random.sample(range(len(beta)), 3)
+
+    probabilities = []
+    theta_range = np.sort(theta)
+    # theta_range = np.linspace(np.min(theta), np.max(theta), num=100)
+    for j in range(len(js)):
+        prob = sigmoid(theta_range - beta[js[j]])
+        probabilities.append(prob)
+
+    plt.figure()
+    for p, j in zip(probabilities, js):
+        plt.plot(theta_range, p, label=f"j={j}")
+    plt.legend()
+    plt.xlabel('Theta')
+    plt.ylabel('Probaility')
+    plt.title('Probability as a Funtion of Theta')
+    plt.savefig('/Users/cherry.lian/Desktop/CSC311/CSC311_Project/csc311/starter_code/part_a/q2_d_prob.png')
+    
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
