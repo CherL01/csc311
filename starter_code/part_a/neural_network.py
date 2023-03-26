@@ -70,7 +70,8 @@ class AutoEncoder(nn.Module):
         # Implement the function as described in the docstring.             #
         # Use sigmoid activations for f and g.                              #
         #####################################################################
-        out = inputs
+        act = nn.Sigmoid()
+        out = act(self.h(act(self.g(inputs))))
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -113,7 +114,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch):
             nan_mask = np.isnan(train_data[user_id].unsqueeze(0).numpy())
             target[0][nan_mask] = output[0][nan_mask]
 
-            loss = torch.sum((output - target) ** 2.)
+            # loss = torch.sum((output - target) ** 2.)
+            loss = torch.sum((output - target) ** 2.) + lamb/2 * (model.get_weight_norm())
             loss.backward()
 
             train_loss += loss.item()
@@ -162,15 +164,17 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = None
-    model = None
+    k = [10, 50, 100, 200, 500]
+    model = AutoEncoder
+
+    num_questions = train_matrix.shape[1]
 
     # Set optimization hyperparameters.
-    lr = None
-    num_epoch = None
-    lamb = None
-
-    train(model, lr, lamb, train_matrix, zero_train_matrix,
+    lr = 0.003
+    num_epoch = 20
+    lamb = 0
+    for k_choice in k:
+        train(model(num_question=num_questions, k=k_choice), lr, lamb, train_matrix, zero_train_matrix,
           valid_data, num_epoch)
     #####################################################################
     #                       END OF YOUR CODE                            #
