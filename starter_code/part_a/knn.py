@@ -1,6 +1,7 @@
 from sklearn.impute import KNNImputer
 import os
 from utils import *
+import matplotlib.pyplot as plt
 
 
 
@@ -83,6 +84,14 @@ def main():
         acc = knn_impute_by_user(sparse_matrix, val_data, k)
         val_acc.append(acc)
 
+    # plot validation accuracy
+    plt.figure()
+    plt.plot(ks, val_acc)
+    plt.xlabel('k Value')
+    plt.ylabel('Validation Accuracy')
+    plt.title('Validation Accuracy as a Function of k')
+    plt.savefig('/Users/cherry.lian/Desktop/CSC311/CSC311_Project/csc311/starter_code/part_a/q1_a_val_acc.png')
+
     # find max val acc and corresponding k
     max_val_acc_index = val_acc.index(max(val_acc))
     max_val_acc_k = ks[max_val_acc_index]
@@ -103,6 +112,15 @@ def main():
     for k in ks:
         acc = knn_impute_by_item(sparse_matrix, val_data, k)
         val_acc.append(acc)
+
+    # plot validation accuracy
+    plt.figure()
+    plt.plot(ks, val_acc)
+    plt.xlabel('k Value')
+    plt.ylabel('Validation Accuracy')
+    plt.title('Validation Accuracy as a Function of k')
+    plt.savefig('/Users/cherry.lian/Desktop/CSC311/CSC311_Project/csc311/starter_code/part_a/q1_c_val_acc.png')
+
 
     # find max val acc and corresponding k
     max_val_acc_index = val_acc.index(max(val_acc))
