@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 
 def load_data(base_path="../data"):
@@ -91,8 +92,9 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch, d
     :param num_epoch: int
     :return: None
     """
-    # TODO: Add a regularizer to the cost function. 
-    
+    train_losses = []
+    val_accs = []
+
     # Tell PyTorch you are training the model.
     model.train()
     model.to(device)
@@ -118,8 +120,8 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch, d
             nan_mask = torch.isnan(nan_mask.to(device))
             target[nan_mask] = output[nan_mask]
 
-            loss = torch.sum((output - target) ** 2.)
-            # loss = torch.sum((output - target) ** 2.) + lamb/2 * (model.get_weight_norm())
+            # loss = torch.sum((output - target) ** 2.)
+            loss = torch.sum((output - target) ** 2.) + lamb/2 * (model.get_weight_norm())
             loss.backward()
 
             train_loss += loss.item()
@@ -128,9 +130,14 @@ def train(model, lr, lamb, train_data, zero_train_data, valid_data, num_epoch, d
         valid_acc = evaluate(model, zero_train_data, valid_data, device=device)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
+        
+        train_losses.append(train_loss)
+        val_accs.append(valid_acc)
+    
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
+    return train_losses, val_accs
 
 
 def evaluate(model, train_data, valid_data, device=torch.device("cpu")):
@@ -169,20 +176,45 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = [10, 50, 100, 200, 500]
+    k = 100
     model = AutoEncoder
 
     num_questions = train_matrix.shape[1]
 
     # Set optimization hyperparameters.
-    lr = 0.03
-    num_epoch = 30
-    lamb = 0
-    for k_choice in k:
-        train(model(num_question=num_questions, k=k_choice), lr, lamb, train_matrix, zero_train_matrix,
+    lr = 0.05
+    num_epoch = 15
+    # lamb = [0.001, 0.01, 0.1, 1]
+    lamb = [0.001]
+    top_accs = []
+    for lamb_choice in lamb:
+        m = model(num_question=num_questions, k=k)
+        train_costs, val_accs = train(m, lr, lamb_choice, train_matrix, zero_train_matrix,
           valid_data, num_epoch, 
           device=torch.device("cuda:0")
           )
+        top_accs.append(val_accs[-1])
+    
+    # plt.plot(range(1, num_epoch+1, 1), val_accs)
+    # plt.title("Validation Accuracy vs Epochs")
+    # plt.xlabel("Epochs")
+    # plt.ylabel("Validation Accuracy")
+    # plt.savefig("q3_d_val.png")
+    # plt.clf()
+
+    # plt.plot(range(1, num_epoch+1, 1), train_costs)
+    # plt.title("Training Loss vs Epochs")
+    # plt.xlabel("Epochs")
+    # plt.ylabel("Loss")
+    # plt.savefig("q3_d_train.png")
+    # plt.plot(lamb, top_accs)
+    # plt.title("Validation Accuracy vs Regularization")
+    # plt.xlabel("Lambda")
+    # plt.ylabel("Validation Accuracy")
+    # plt.savefig("q3_e.png")
+    test_acc = evaluate(m, zero_train_matrix, test_data, device=torch.device("cuda:0"))
+
+    print(f"Test accuracy: {test_acc}")
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
