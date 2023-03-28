@@ -64,9 +64,9 @@ def main():
 
     num_questions = train_matrix.shape[1]
 
-    lr = 0.05
+    lr = 0.017
     num_epoch = 15
-    lamb = 0.001
+    lamb = 0
     k = 100
 
     models = [AutoEncoder(num_questions, k) for _ in range(splits)]
