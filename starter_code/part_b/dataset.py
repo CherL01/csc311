@@ -49,12 +49,18 @@ class StudentData(Dataset):
 
     def __len__(self):
         return self.train_matrix.shape[0]
-    
+
+    def normalize_meta_data(self):
+        for col in self.student_df.columns:
+            if col == "user_id":
+                self.student_df[col]
+
 if __name__ == "__main__":
-    df = pd.read_csv("../data/student_meta.csv")
+    df = pd.read_csv("../data/student_meta.csv", index_col="user_id")
     df["data_of_birth"] = df["data_of_birth"].fillna(value="2005").apply(func=lambda x: int(x.split("-")[0]))
     df["data_of_birth"] = 2020 - df["data_of_birth"]
-    
-    
+
+    df["premium_pupil"] = df["premium_pupil"].fillna(value=0.0).apply(func=lambda x: int(x))
+    df["gender"] = df["gender"].fillna(value=0).apply(func=lambda x: int(x))
+
     print(df.head())
-    print(np.mean(df["data_of_birth"]))
