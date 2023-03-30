@@ -176,7 +176,7 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 100
+    k = 10
     model = AutoEncoder
 
     num_questions = train_matrix.shape[1]
@@ -184,8 +184,9 @@ def main():
     # Set optimization hyperparameters.
     lr = 0.05
     num_epoch = 15
-    # lamb = [0.001, 0.01, 0.1, 1]
-    lamb = [0.001]
+    lamb = [0.001, 0.01, 0.1, 1]
+    # lamb = [0.0]
+    # lamb = 0
     top_accs = []
     for lamb_choice in lamb:
         m = model(num_question=num_questions, k=k)
@@ -207,11 +208,11 @@ def main():
     # plt.xlabel("Epochs")
     # plt.ylabel("Loss")
     # plt.savefig("q3_d_train.png")
-    # plt.plot(lamb, top_accs)
-    # plt.title("Validation Accuracy vs Regularization")
-    # plt.xlabel("Lambda")
-    # plt.ylabel("Validation Accuracy")
-    # plt.savefig("q3_e.png")
+    plt.plot(lamb, top_accs)
+    plt.title("Validation Accuracy vs Regularization")
+    plt.xlabel("Lambda")
+    plt.ylabel("Validation Accuracy")
+    plt.savefig("q3_e.png")
     test_acc = evaluate(m, zero_train_matrix, test_data, device=torch.device("cuda:0"))
 
     print(f"Test accuracy: {test_acc}")

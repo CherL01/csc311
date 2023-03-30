@@ -67,7 +67,7 @@ def main():
     lr = 0.017
     num_epoch = 15
     lamb = 0
-    k = 100
+    k = 10
 
     models = [AutoEncoder(num_questions, k) for _ in range(splits)]
 
