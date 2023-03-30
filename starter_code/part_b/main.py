@@ -86,6 +86,11 @@ def evaluate(model, train_data, valid_data, device=torch.device("cpu")):
     total = 0
     correct = 0
 
+    zeroed_data = []
+    meta_data = []
+    for z_d, d, m_d in train_data:
+        
+
     inputs = Variable(train_data).to(device)
     output = model(inputs).to(device)
     valid_guesses = output[valid_data["user_id"], valid_data["question_id"]]
