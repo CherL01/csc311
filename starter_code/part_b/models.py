@@ -20,8 +20,12 @@ class BetterAutoEncoder(nn.Module):
         self.question_encoder_hidden = nn.Linear(2*k, k)
         self.question_decoder_hidden = nn.Linear(k, k)
         self.question_decoder = nn.Linear(k, num_question)
-
-        self.acts = [nn.PReLU() for _ in range(5)]
+        
+        self.acts1 = nn.PReLU()
+        self.acts2 = nn.PReLU()
+        self.acts3 = nn.PReLU()
+        self.acts4 = nn.PReLU()
+        self.acts5 = nn.PReLU()
 
     def forward(self, inputs, user_data):
         """ Return a forward pass given inputs.
@@ -31,19 +35,19 @@ class BetterAutoEncoder(nn.Module):
         :return: user vector.
         """
         encoded_questions = self.question_encoder(inputs)
-        encoded_questions = self.acts[0](encoded_questions)
+        encoded_questions = self.acts1(encoded_questions)
 
         encoded_meta = self.meta_data_encoder(user_data)
-        encoded_meta = self.acts[1](encoded_meta)
+        encoded_meta = self.acts2(encoded_meta)
 
         concatenated_vector = torch.concatenate([encoded_questions, encoded_meta], dim=-1)
         latent_embedding = self.question_encoder_hidden(concatenated_vector)
-        latent_embedding = self.acts[2](latent_embedding)
+        latent_embedding = self.acts3(latent_embedding)
 
         out = self.question_decoder_hidden(latent_embedding)
-        out = self.acts[3](out)
+        out = self.acts4(out)
 
         out = self.question_decoder(out)
-        out = self.acts[4](out)
+        out = self.acts5(out)
 
         return out

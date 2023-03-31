@@ -3,6 +3,8 @@ import torch
 
 import torch.optim as optim
 import torch.nn as nn
+import matplotlib.pyplot as plt
+
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
@@ -11,7 +13,33 @@ from models import BetterAutoEncoder
 
 from utils import *
 
-def train(model, lr, lamb, train_dataloader, valid_data, num_epoch, device = torch.device("cpu")):
+def load_data(base_path="../data"):
+    """ Load the data in PyTorch Tensor.
+
+    :return: (zero_train_matrix, train_data, valid_data, test_data)
+        WHERE:
+        zero_train_matrix: 2D sparse matrix where missing entries are
+        filled with 0.
+        train_data: 2D sparse matrix
+        valid_data: A dictionary {user_id: list,
+        user_id: list, is_correct: list}
+        test_data: A dictionary {user_id: list,
+        user_id: list, is_correct: list}
+    """
+    train_matrix = load_train_sparse(base_path).toarray()
+    valid_data = load_valid_csv(base_path)
+    test_data = load_public_test_csv(base_path)
+
+    zero_train_matrix = train_matrix.copy()
+    # Fill in the missing entries to 0.
+    zero_train_matrix[np.isnan(train_matrix)] = 0
+    # Change to Float Tensor for PyTorch.
+    zero_train_matrix = torch.FloatTensor(zero_train_matrix)
+    train_matrix = torch.FloatTensor(train_matrix)
+
+    return zero_train_matrix, train_matrix, valid_data, test_data
+
+def train(model, lr, lamb, train_dataloader, valid_data, num_epoch, step_size = 5, device = torch.device("cpu")):
     """ Train the neural network, where the objective also includes
     a regularizer.
 
@@ -34,7 +62,9 @@ def train(model, lr, lamb, train_dataloader, valid_data, num_epoch, device = tor
     # Define optimizers and loss function.
     optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=lamb)
     # num_student = train_data.shape[0]
-    scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=5, gamma=0.5)
+    scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=step_size, gamma=0.5)
+
+    loss_fn = nn.MSELoss()
 
     for epoch in range(0, num_epoch):
         train_loss = 0.
@@ -51,12 +81,14 @@ def train(model, lr, lamb, train_dataloader, valid_data, num_epoch, device = tor
             nan_mask = torch.isnan(nan_mask.to(device))
             target[nan_mask] = output[nan_mask]
 
-            loss = torch.sum((output - target) ** 2.)
+            loss = loss_fn(output, target)
+            # print(loss)
             loss.backward()
 
             train_loss += loss.item()
             optimizer.step()
 
+        scheduler.step()
         valid_acc = evaluate(model, train_dataloader, valid_data, device=device)
         print("Epoch: {} \tTraining Cost: {:.6f}\t "
               "Valid Acc: {}".format(epoch, train_loss, valid_acc))
@@ -89,10 +121,13 @@ def evaluate(model, train_data, valid_data, device=torch.device("cpu")):
     zeroed_data = []
     meta_data = []
     for z_d, d, m_d in train_data:
-        
+        zeroed_data.append(z_d)
+        meta_data.append(m_d)
 
-    inputs = Variable(train_data).to(device)
-    output = model(inputs).to(device)
+    zeroed_data = torch.concatenate(zeroed_data, dim=0).to(device)
+    meta_data = torch.concatenate(meta_data, dim=0).to(device)
+
+    output = model(zeroed_data, meta_data)
     valid_guesses = output[valid_data["user_id"], valid_data["question_id"]]
     guess = (valid_guesses >= 0.5)
     correct = torch.sum(guess == torch.tensor(valid_data["is_correct"], device=device)).item()
@@ -111,44 +146,55 @@ def main():
     # validation set.                                                   #
     #####################################################################
     # Set model hyperparameters.
-    k = 100
-    model = AutoEncoder
-
+    k = [10, 50, 100, 200, 500]
     num_questions = train_matrix.shape[1]
 
-    # Set optimization hyperparameters.
-    lr = 0.05
-    num_epoch = 15
-    # lamb = [0.001, 0.01, 0.1, 1]
-    lamb = [0.001]
-    top_accs = []
-    for lamb_choice in lamb:
-        m = model(num_question=num_questions, k=k)
-        train_costs, val_accs = train(m, lr, lamb_choice, train_matrix, zero_train_matrix,
-          valid_data, num_epoch, 
-          device=torch.device("cuda:0")
-          )
-        top_accs.append(val_accs[-1])
+    dataset = StudentData(zero_train_matrix=zero_train_matrix, train_matrix=train_matrix)
     
+
+    # Set optimization hyperparameters.
+    lr = [0.1, 0.05, 0.01]
+    num_epoch = 50
+    lamb = [0.0, 0.001, 0.0001]
+    steps = [5, 10, 25]
+    top_accs = []
+    test_accs = []
+    for step_choice in steps:
+        for lr_choice in lr:
+            for lamb_choice in lamb:
+                for k_choice in k:
+                    model = BetterAutoEncoder(num_question=num_questions, meta_features=7)
+                    dataloader = DataLoader(dataset, batch_size=1, num_workers=2)
+                    train_costs, val_accs = train(model, lr_choice, lamb_choice, dataloader,
+                    valid_data, num_epoch, step_size=step_choice,
+                    device=torch.device("cuda:0")
+                    )
+                    top_accs.append(val_accs[-1])
+                    test_acc = evaluate(model, dataloader, test_data, device=torch.device("cuda:0"))
+                    test_accs.append(test_acc)
+            
+                    with open("log.txt", "a") as f:
+                        f.write(",".join([str(k_choice), str(lamb_choice), str(lr_choice), str(step_choice), str(val_accs[-1]), str(train_costs[-1]), str(test_acc)]) + "\n")
     # plt.plot(range(1, num_epoch+1, 1), val_accs)
     # plt.title("Validation Accuracy vs Epochs")
     # plt.xlabel("Epochs")
     # plt.ylabel("Validation Accuracy")
-    # plt.savefig("q3_d_val.png")
+    # plt.savefig("part_b_val.png")
     # plt.clf()
 
     # plt.plot(range(1, num_epoch+1, 1), train_costs)
     # plt.title("Training Loss vs Epochs")
     # plt.xlabel("Epochs")
     # plt.ylabel("Loss")
-    # plt.savefig("q3_d_train.png")
+    # plt.savefig("part_b_train.png")
     # plt.plot(lamb, top_accs)
     # plt.title("Validation Accuracy vs Regularization")
     # plt.xlabel("Lambda")
     # plt.ylabel("Validation Accuracy")
     # plt.savefig("q3_e.png")
-    test_acc = evaluate(m, zero_train_matrix, test_data, device=torch.device("cuda:0"))
-
+    print(top_accs)
+    print(test_accs)
+    test_acc = evaluate(model, dataloader, test_data, device=torch.device("cuda:0"))
     print(f"Test accuracy: {test_acc}")
     #####################################################################
     #                       END OF YOUR CODE                            #
